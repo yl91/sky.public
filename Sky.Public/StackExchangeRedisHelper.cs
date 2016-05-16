@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Sky.Public
@@ -90,7 +91,7 @@ namespace Sky.Public
             }
         }
 
-        public IDictionary<string, string> HashGet(string key)
+        public static IDictionary<string, string> HashGet(string key)
         {
             HashEntry[] hashentries = Instance.GetDatabase().HashGetAll(key);
             return hashentries?.ToStringDictionary();
@@ -123,11 +124,12 @@ namespace Sky.Public
         /// 消息组建中,重要的概念便是生产者,消费者,消息中间件。
         /// </summary>
         /// <param name="channel"></param>
-        /// <param name="message"></param>
+        /// <param name="obj"></param>
         /// <returns></returns>
-        public static long Publish(string channel, string message)
+        public static long Publish<T>(string channel, T obj)
         {
             ISubscriber sub = Instance.GetSubscriber();
+            string message= JsonConvert.SerializeObject(obj);
             //return sub.Publish("messages", "hello");
             return sub.Publish(channel, message);
         }
@@ -136,13 +138,15 @@ namespace Sky.Public
         /// 在消费者端得到该消息并输出
         /// </summary>
         /// <param name="channelFrom"></param>
+        /// <param name="action"></param>
         /// <returns></returns>
-        public static void Subscribe(string channelFrom)
+        public static void Subscribe(string channelFrom,Action<string,string>  action)
         {
             ISubscriber sub = Instance.GetSubscriber();
-            sub.Subscribe(channelFrom, (channel, message) =>
+            sub.Subscribe(channelFrom, (c, s) =>
             {
-                Console.WriteLine((string)message);
+                //Console.WriteLine((string)message);
+                action(c,s);
             });
         }
         #endregion
